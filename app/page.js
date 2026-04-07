@@ -10,12 +10,40 @@ export default function Home() {
 
   // Install Prompt state for PWA
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [installState, setInstallState] = useState('idle');
+
   useEffect(() => {
-    window.addEventListener('beforeinstallprompt', (e) => {
+    const handleBeforeInstall = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-    });
+    };
+    
+    const handleAppInstalled = () => {
+      setInstallState('success');
+      setTimeout(() => {
+        setDeferredPrompt(null);
+      }, 2500);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    setInstallState('installing');
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'dismissed') {
+      setInstallState('idle');
+      setDeferredPrompt(null);
+    }
+  };
 
   const simulateProgress = () => {
     setProgress(0);
@@ -83,24 +111,85 @@ export default function Home() {
   return (
     <main dir="rtl" className="flex justify-center min-h-screen w-full font-bold bg-[#f1f5f9] sm:p-6 overflow-hidden">
       
-      {/* Install PWA Prompt Banner */}
+      {/* Massive Beautiful PWA Install Modal */}
       <AnimatePresence>
         {deferredPrompt && (
-          <motion.div 
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -50, opacity: 0 }}
-            className="fixed top-4 z-50 bg-white shadow-xl rounded-full pr-2 pl-6 py-2 flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors border border-slate-200"
-            onClick={() => {
-              deferredPrompt.prompt();
-              deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
-            }}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-6"
           >
-            <img src="/pwaicon.png" alt="App Icon" className="w-10 h-10 rounded-full shadow-sm" />
-            <div className="flex flex-col">
-              <span className="text-slate-900 font-bold text-sm leading-tight">تثبيت التطبيق</span>
-              <span className="text-slate-500 text-xs font-medium">Sayma Contract</span>
-            </div>
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[2rem] w-full max-w-sm flex flex-col shadow-2xl p-8 text-center relative overflow-hidden"
+            >
+              {installState === 'idle' && (
+                <button 
+                  onClick={() => setDeferredPrompt(null)}
+                  className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              )}
+              
+              {installState === 'success' ? (
+                // Success State View
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }} 
+                  animate={{ opacity: 1, scale: 1 }} 
+                  className="flex flex-col items-center py-4"
+                >
+                  <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 border border-green-100">
+                    <CheckCircle className="w-12 h-12 text-green-500" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">تم التثبيت بنجاح!</h2>
+                  <p className="text-slate-500 font-medium">يمكنك الآن فتح التطبيق من شاشتك الرئيسية.</p>
+                </motion.div>
+              ) : (
+                // Idle or Installing View
+                <div className="flex flex-col items-center">
+                  <div className="w-24 h-24 mb-6 relative">
+                    <div className="absolute inset-0 bg-blue-100 rounded-3xl blur-xl opacity-60"></div>
+                    <img src="/pwaicon.png" alt="Sayma App" className="w-full h-full object-cover rounded-3xl shadow-lg relative z-10 border border-slate-100" />
+                  </div>
+                  
+                  <h2 className="text-2xl font-bold text-slate-900 mb-3">تثبيت التطبيق</h2>
+                  <p className="text-sm text-slate-500 font-medium mb-8 leading-relaxed px-2">
+                    يرجى تثبيت تطبيقنا على جهازك للوصول السريع والسهل في أي وقت وبدون الحاجة للمتصفح.
+                  </p>
+                  
+                  <button 
+                    onClick={handleInstallClick}
+                    disabled={installState === 'installing'}
+                    className="w-full bg-[#008CBA] text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2 transition-transform active:scale-95 disabled:opacity-90 disabled:scale-100"
+                  >
+                    {installState === 'installing' ? (
+                      <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        className="flex items-center gap-3"
+                      >
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        جاري التثبيت...
+                      </motion.div>
+                    ) : (
+                      "تثبيت الآن (Install)"
+                    )}
+                  </button>
+                  
+                  {installState === 'idle' && (
+                    <button 
+                      onClick={() => setDeferredPrompt(null)}
+                      className="mt-4 text-slate-400 font-medium text-sm hover:text-slate-600 transition-colors"
+                    >
+                      ليس الآن
+                    </button>
+                  )}
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
