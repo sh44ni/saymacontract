@@ -125,27 +125,42 @@ export default function Home() {
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white sm:rounded-3xl w-full h-full sm:h-[90vh] max-w-4xl flex flex-col shadow-2xl overflow-hidden"
+              className="bg-white rounded-3xl w-full max-w-sm flex flex-col shadow-2xl p-8 text-center relative"
             >
-              <div className="flex items-center justify-between p-4 px-6 border-b border-slate-100 bg-slate-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-900">تم التوليد بنجاح!</h2>
-                    <p className="text-xs text-slate-500 font-medium">تم بدء التحميل تلقائياً. هذه معاينة للعقد.</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setPdfUrl(null)}
-                  className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                >
-                  <X className="w-6 h-6 text-slate-500" />
-                </button>
+              <button 
+                onClick={() => setPdfUrl(null)}
+                className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+              
+              <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-5">
+                <CheckCircle className="w-12 h-12 text-green-500" />
               </div>
-              <div className="flex-1 bg-slate-200 relative">
-                <iframe src={pdfUrl} className="w-full h-full absolute inset-0" title="PDF Preview" />
+              
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">تم توليد العقد!</h2>
+              <p className="text-sm text-slate-500 font-medium mb-8">لقد تم إنشاء عقد العمل الخاص بك بنجاح وهو جاهز للتحميل الآن.</p>
+              
+              <div className="flex flex-col gap-3">
+                <a 
+                  href={pdfUrl} 
+                  download={`contract_${Date.now()}.pdf`}
+                  onClick={() => setTimeout(() => setPdfUrl(null), 500)}
+                  className="w-full bg-[#008CBA] text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-blue-500/20 flex justify-center items-center gap-2 transition-transform active:scale-95"
+                >
+                  <Download className="w-6 h-6" />
+                  تحميل ومشاركة (PDF)
+                </a>
+                
+                <button 
+                  onClick={() => {
+                    window.open(pdfUrl, '_blank');
+                  }}
+                  className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-2xl py-4 font-bold text-lg flex justify-center items-center gap-2 transition-transform active:scale-95"
+                >
+                  <Eye className="w-6 h-6 text-slate-400" />
+                  فتح للمعاينة
+                </button>
               </div>
             </motion.div>
           </motion.div>
