@@ -1,15 +1,45 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle, FileText, Loader2, Download, X, Eye } from "lucide-react";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [pdfUrl, setPdfUrl] = useState(null);
+
+  // Install Prompt state for PWA
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+  }, []);
+
+  const simulateProgress = () => {
+    setProgress(0);
+    const interval = setInterval(() => {
+      setProgress((old) => {
+        if (old >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return old + 10;
+      });
+    }, 300);
+    return interval;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setPdfUrl(null);
 
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
+
+    const progressInterval = simulateProgress();
 
     try {
       const response = await fetch("/api/pdf", {
@@ -20,124 +50,221 @@ export default function Home() {
 
       if (!response.ok) throw new Error("Failed to generate PDF");
 
-      // Handle File Download safely
+      clearInterval(progressInterval);
+      setProgress(100);
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `contract_${Date.now()}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      
+      setLoading(false);
+      setPdfUrl(url); // Triggers the Preview Modal
+      
+      // Auto Download
+      setTimeout(() => {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `contract_${Date.now()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }, 1000);
+
     } catch (err) {
+      clearInterval(progressInterval);
+      setProgress(0);
+      setLoading(false);
       alert("Error generating PDF. Please try again.");
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
+  const InputField = ({ name, placeholder, type = "text", required = true }) => (
+    <motion.div whileTap={{ scale: 0.99 }} className="w-full">
+      <input
+        required={required}
+        placeholder={placeholder}
+        type={type}
+        name={name}
+        className="w-full bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#008CBA] focus:bg-white transition-all font-medium shadow-sm"
+      />
+    </motion.div>
+  );
+
   return (
-    <main className="flex justify-center h-auto min-h-screen w-full font-bold">
-      <div className="container contact-form-page w-full max-w-2xl p-4">
-        <form className="contactUsForm flex flex-col gap-4" onSubmit={handleSubmit}>
-          <div className="first-two flex items-center justify-between gap-x-2">
-            <input
-              className="w-full border p-2 rounded"
-              required
-              placeholder="الطرف الثاني"
-              type="text"
-              name="naam"
-            />
-            <input
-              className="w-full border p-2 rounded"
-              required
-              placeholder="الرقم المدني"
-              type="number"
-              name="raqam"
-            />
-          </div>
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="الرقم الماذونية"
-            type="text"
-            name="madvia"
-          />
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="العنوان المحافظة"
-            type="text"
-            name="hafza"
-          />
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="ولاية"
-            type="text"
-            name="walid"
-          />
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="رقم الهاتف"
-            type="number"
-            name="hatif"
-          />
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="يوم الاحد بتاريخ"
-            type="date"
-            name="date"
-          />
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="قيمه الاستقدام"
-            type="number"
-            name="mastaqdam"
-          />
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="والعاملة تدعي"
-            type="text"
-            name="aamil"
-          />
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="رقم الجواز"
-            type="text"
-            name="khaldal"
-          />
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="الجنسية"
-            type="text"
-            name="jins"
-          />
-          <input
-            className="block w-full border p-2 rounded"
-            required
-            placeholder="شهري وقدره"
-            type="number"
-            name="yadfa"
-          />
-          <button
-            disabled={loading}
-            className={`bg-[#008CBA] text-white px-4 py-3 mt-4 rounded-lg font-medium transition-colors ${
-              loading ? "opacity-50 cursor-not-allowed" : "hover:bg-[#007B9A]"
-            }`}
+    <main dir="rtl" className="flex justify-center min-h-screen w-full font-bold bg-[#f1f5f9] sm:p-6 overflow-hidden">
+      
+      {/* Install PWA Prompt Banner */}
+      <AnimatePresence>
+        {deferredPrompt && (
+          <motion.div 
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -50, opacity: 0 }}
+            className="fixed top-4 z-50 bg-white shadow-xl rounded-full px-6 py-3 flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors border border-slate-200"
+            onClick={() => {
+              deferredPrompt.prompt();
+              deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
+            }}
           >
-            {loading ? "Generating PDF..." : "Download as pdf"}
+            <Download className="w-5 h-5 text-[#008CBA]" />
+            <span className="text-slate-800 text-sm">تثبيت التطبيق (PWA)</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* PDF Preview Modal */}
+      <AnimatePresence>
+        {pdfUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm sm:p-8"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white sm:rounded-3xl w-full h-full sm:h-[90vh] max-w-4xl flex flex-col shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-4 px-6 border-b border-slate-100 bg-slate-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">تم التوليد بنجاح!</h2>
+                    <p className="text-xs text-slate-500 font-medium">تم بدء التحميل تلقائياً. هذه معاينة للعقد.</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setPdfUrl(null)}
+                  className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6 text-slate-500" />
+                </button>
+              </div>
+              <div className="flex-1 bg-slate-200 relative">
+                <iframe src={pdfUrl} className="w-full h-full absolute inset-0" title="PDF Preview" />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="w-full max-w-xl h-full sm:h-auto bg-white sm:rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col relative pb-8">
+        
+        {/* App Header */}
+        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-xl pt-10 pb-6 px-8 border-b border-slate-100 flex flex-col items-center">
+          <img 
+            src="https://saymamanpower.com/Saymalogo.bcb280ec7a2e3fbd5000e13555ca1240_1_.svg" 
+            alt="Sayma Logo" 
+            className="h-14 mb-4 object-contain drop-shadow-sm"
+          />
+          <h1 className="text-slate-900 text-xl font-extrabold tracking-wide">نظام العقود الذكية</h1>
+          <p className="text-slate-500 text-sm font-medium mt-1">يرجى ملء بيانات العقد بدقة</p>
+        </div>
+
+        {/* Form Body */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 sm:px-8 py-6">
+          <form className="flex flex-col gap-5" id="contractForm" onSubmit={handleSubmit}>
+            
+            <div className="flex items-center justify-between gap-4">
+              <InputField name="naam" placeholder="الطرف الثاني (الاسم)" />
+              <InputField name="raqam" placeholder="الرقم المدني" type="number" />
+            </div>
+            
+            <InputField name="madvia" placeholder="الرقم الماذونية" />
+            
+            <div className="flex items-center gap-4">
+              <InputField name="hafza" placeholder="العنوان المحافظة" />
+              <InputField name="walid" placeholder="الولاية" />
+            </div>
+
+            <InputField name="hatif" placeholder="رقم الهاتف" type="number" />
+            
+            <div className="bg-slate-50 rounded-2xl p-2 border border-slate-200 shadow-sm">
+              <label className="text-xs text-slate-500 px-3 block mb-1">تاريخ الاتفاق</label>
+              <input
+                required
+                type="date"
+                name="date"
+                className="w-full bg-transparent text-slate-900 p-2 px-3 border-none focus:outline-none font-medium"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <InputField name="mastaqdam" placeholder="قيمة الاستقدام (ر.ع)" type="number" />
+              <InputField name="yadfa" placeholder="الراتب الشهري (ر.ع)" type="number" />
+            </div>
+
+            <div className="bg-blue-50 p-5 rounded-3xl border border-blue-100 mt-2 flex flex-col gap-4 shadow-sm">
+              <h3 className="text-blue-800 text-sm flex items-center gap-2 mb-1">
+                <FileText className="w-4 h-4" />
+                بيانات العاملة
+              </h3>
+              <InputField name="aamil" placeholder="اسم العاملة" />
+              <div className="flex gap-4">
+                <InputField name="khaldal" placeholder="رقم الجواز" />
+                <InputField name="jins" placeholder="الجنسية" />
+              </div>
+            </div>
+
+          </form>
+        </div>
+
+        {/* Fixed Footer for Action Button */}
+        <div className="px-6 sm:px-8 pt-4">
+          <button
+            form="contractForm"
+            disabled={loading}
+            className="group relative w-full h-16 bg-[#008CBA] text-white rounded-2xl font-bold text-lg shadow-lg shadow-blue-500/30 overflow-hidden transform transition-all active:scale-95 disabled:hover:scale-100 disabled:active:scale-100 disabled:opacity-90 disabled:cursor-wait"
+          >
+            <AnimatePresence mode="popLayout">
+              {loading ? (
+                <motion.div 
+                  key="loading"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center p-2"
+                >
+                  <div className="flex items-center gap-3 z-10">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>جاري التوليد...</span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 h-1 bg-white/20 w-full" />
+                  <motion.div 
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${progress}%` }}
+                    className="absolute bottom-0 left-0 h-1 bg-yellow-400 z-0 transition-all duration-300"
+                  />
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="idle"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="absolute inset-0 flex items-center justify-center gap-3"
+                >
+                  <Eye className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  <span>توليد ومعاينة العقد</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </button>
-        </form>
+        </div>
       </div>
+      
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; filter: invert(0.5); }
+      `}} />
     </main>
   );
 }
