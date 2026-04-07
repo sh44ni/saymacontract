@@ -90,14 +90,17 @@ export default function Home() {
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -50, opacity: 0 }}
-            className="fixed top-4 z-50 bg-white shadow-xl rounded-full px-6 py-3 flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors border border-slate-200"
+            className="fixed top-4 z-50 bg-white shadow-xl rounded-full pr-2 pl-6 py-2 flex items-center gap-4 cursor-pointer hover:bg-slate-50 transition-colors border border-slate-200"
             onClick={() => {
               deferredPrompt.prompt();
               deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
             }}
           >
-            <Download className="w-5 h-5 text-[#008CBA]" />
-            <span className="text-slate-800 text-sm">تثبيت التطبيق (PWA)</span>
+            <img src="/pwaicon.png" alt="App Icon" className="w-10 h-10 rounded-full shadow-sm" />
+            <div className="flex flex-col">
+              <span className="text-slate-900 font-bold text-sm leading-tight">تثبيت التطبيق</span>
+              <span className="text-slate-500 text-xs font-medium">Sayma Contract</span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
