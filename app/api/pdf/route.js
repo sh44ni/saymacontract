@@ -1,5 +1,4 @@
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer";
 
 const getHtmlTemplate = (data) => {
   // Format the date if it exists
@@ -136,22 +135,9 @@ export async function POST(req) {
   try {
     const data = await req.json();
 
-    const isLocal = process.env.NODE_ENV === "development";
-    let executablePath = null;
-    
-    if (isLocal) {
-      // Local Windows fallback since Sparticuz doesn't bundle a Windows chromium binary natively
-      executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-    } else {
-      executablePath = await chromium.executablePath();
-    }
-
     const browser = await puppeteer.launch({
-      args: isLocal ? [] : chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: executablePath || process.env.PUPPETEER_EXECUTABLE_PATH,
-      headless: isLocal ? "new" : chromium.headless,
-      ignoreHTTPSErrors: true,
+      headless: "new",
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();
