@@ -58,16 +58,6 @@ export default function Home() {
       
       setLoading(false);
       setPdfUrl(url); // Triggers the Preview Modal
-      
-      // Auto Download
-      setTimeout(() => {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `contract_${Date.now()}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }, 1000);
 
     } catch (err) {
       clearInterval(progressInterval);
@@ -141,15 +131,14 @@ export default function Home() {
               <h2 className="text-2xl font-bold text-slate-900 mb-2">تم توليد العقد!</h2>
               <p className="text-sm text-slate-500 font-medium mb-8">لقد تم إنشاء عقد العمل الخاص بك بنجاح وهو جاهز للتحميل الآن.</p>
               
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4 mt-2">
                 <a 
                   href={pdfUrl} 
-                  download={`contract_${Date.now()}.pdf`}
-                  onClick={() => setTimeout(() => setPdfUrl(null), 500)}
-                  className="w-full bg-[#008CBA] text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-blue-500/20 flex justify-center items-center gap-2 transition-transform active:scale-95"
+                  download={`Sayma_Contract.pdf`}
+                  className="w-full bg-[#008CBA] hover:bg-[#007ba3] text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-blue-500/20 flex justify-center items-center gap-2 transition-all active:scale-95"
                 >
                   <Download className="w-6 h-6" />
-                  تحميل ومشاركة (PDF)
+                  حفظ العقد (Download)
                 </a>
                 
                 <button 
