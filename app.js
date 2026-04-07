@@ -3,7 +3,13 @@ const fs = require("fs");
 const express = require("express");
 const path = require("path");
 const ejs = require("ejs");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-core");
+let chromium = null;
+try {
+  chromium = require("@sparticuz/chromium");
+} catch (e) {
+  // @sparticuz/chromium is only needed on Vercel
+}
 const { log, error } = require("console");
 const { Pool } = require("pg");
 const app = express();
@@ -151,11 +157,27 @@ app.get("/download-pdf/:userId", async (req, res) => {
     }
     user._id = user.id; // Map id to _id so EJS views aren't broken
 
+    let executablePath = null;
+    let browserArgs = ["--no-sandbox", "--disable-setuid-sandbox"];
+    let headless = "new";
+
+    if (process.env.VERCEL) {
+      // Vercel Serverless Function
+      executablePath = await chromium.executablePath();
+      browserArgs = chromium.args;
+      headless = chromium.headless;
+    } else if (process.platform === 'win32') {
+      // Local Windows System
+      executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+    } else if (process.platform === 'linux') {
+      // Ubuntu / VPS System
+      executablePath = "/usr/bin/chromium-browser";
+    }
+
     const browser = await puppeteer.launch({
-      headless: "new",
-      args: [
-        "--no-sandbox",
-      ],
+      executablePath: executablePath,
+      headless: headless,
+      args: browserArgs,
     });
     const page = await browser.newPage();
     
